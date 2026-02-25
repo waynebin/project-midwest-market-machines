@@ -16,6 +16,9 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .vscode/tasks.json
+.vscode/daily-pull.ps1
+.vscode/.last-pull-date
+.vscode/pull-log.txt
 .idea
 .DS_Store
 *.suo
