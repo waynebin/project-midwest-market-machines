@@ -85,33 +85,37 @@ const useCryptoSocket = (selectedCoin) => {
     const socket = new WebSocket(SOCKET_URL);
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (!data.Kline) return;
+      try {
+        const data = JSON.parse(event.data);
+        if (!data.Kline) return;
 
-      const coin = data.Coin.toUpperCase();
-      const k = data.Kline;
-      const timeSeconds = Math.floor(k.StartTime / 1000);
+        const coin = data.Coin.toUpperCase();
+        const k = data.Kline;
+        const timeSeconds = Math.floor(k.StartTime / 1000);
 
-      if (!allCoinsBuffer.current[coin]) {
-        allCoinsBuffer.current[coin] = new Map();
-      }
+        if (!allCoinsBuffer.current[coin]) {
+          allCoinsBuffer.current[coin] = new Map();
+        }
 
-      const coinMap = allCoinsBuffer.current[coin];
-      const existing = coinMap.get(timeSeconds);
+        const coinMap = allCoinsBuffer.current[coin];
+        const existing = coinMap.get(timeSeconds);
 
-      const candle = {
-        time: timeSeconds,
-        open: existing ? existing.open : parseFloat(k.Open),
-        high: Math.max(parseFloat(k.High), existing ? existing.high : 0),
-        low: Math.min(parseFloat(k.Low), existing ? existing.low : Infinity),
-        close: parseFloat(k.Close),
-      };
+        const candle = {
+          time: timeSeconds,
+          open: existing ? existing.open : parseFloat(k.Open),
+          high: Math.max(parseFloat(k.High), existing ? existing.high : 0),
+          low: Math.min(parseFloat(k.Low), existing ? existing.low : Infinity),
+          close: parseFloat(k.Close),
+        };
 
-      coinMap.set(timeSeconds, candle);
+        coinMap.set(timeSeconds, candle);
 
-      if (coin === activeCoinRef.current.toUpperCase()) {
-        setPrice(candle.close);
-        setLatestCandle(candle);
+        if (coin === activeCoinRef.current.toUpperCase()) {
+          setPrice(candle.close);
+          setLatestCandle(candle);
+        }
+      } catch {
+        // ignore non-JSON messages (e.g. "Connected")
       }
     };
 
@@ -140,7 +144,13 @@ const useCryptoSocket = (selectedCoin) => {
     dbSocketRef.current = socket;
 
     socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch {
+        // ignore non-JSON messages (e.g. "Connected")
+        return;
+      }
 
       switch (data.dataType) {
         case "holding":
@@ -169,6 +179,7 @@ const useCryptoSocket = (selectedCoin) => {
           break;
       }
     };
+
     return () => socket.close();
   }, []);
 
